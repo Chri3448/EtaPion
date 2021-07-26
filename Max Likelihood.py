@@ -11,6 +11,7 @@ import os
 import random
 random.seed()
 import time
+import pickle as pk
 
 startE = 10
 
@@ -72,6 +73,14 @@ def smearEnsemble(ensemble, res):
     newEnsemble = newEnsemble[indices]
     #print('Photons lost in smear: ' + str(len(ensemble) - len(newEnsemble)))
     return newEnsemble
+
+def getMasses(decay):
+    PDFdir = Path(decay + " PDFs/")
+    masses = []
+    for x in PDFdir.iterdir():
+        if str(x).endswith('.csv'):
+            masses.append(float(str(x)[len(str(PDFdir))+1:-4]))
+    return np.array(masses)
 
 def draw_from_pdf(Pc, Ndraws):
         # draw random counts from P(c)
@@ -291,7 +300,7 @@ def JPD_2decays(GammaPiEta, GammaPiPiEta, DM, exposure, Sangle, Ensemble):
            +(expectedEvents3*background(E, exposure, Sangle)/specNorm3))/totalExpectedEvents
 #the simpsons integrations give close but not perfect PDFs, and normalization is necessary
     normalization = integrate.simps(PDF, E)
-    f = interp1d(E, PDF, kind='linear', fill_value= 0)
+    f = interp1d(E, PDF, kind='linear', fill_value= 'extrapolate')
     #print(expectedEvents1, expectedEvents2, expectedEvents3)
     #print(normalization)
     '''
@@ -314,8 +323,8 @@ def JPD_2decays(GammaPiEta, GammaPiPiEta, DM, exposure, Sangle, Ensemble):
         val += np.log(prob/normalization)
     '''
     probs = f(Ensemble)/normalization
-    if any(probs == 0):
-        print('Warning: some photons have zoro probability')
+    if any(probs <= 0):
+        print('Warning: some photons have zoro or negative probability')
     val = np.sum(np.log(probs))
 #the true probability is the product of the spectral probabilities and the poisson probability
     #'''
@@ -371,12 +380,16 @@ def background(energy, exposure, Sangle):
     return (1)*back
 
 #gives the probability of getting something at least as extreme in %
-#takes log likelihood of most likely point in parameter space and experiment
-def sigmaProb(mostLikely, exp):
-    lam = -2*(exp - mostLikely)
+#takes log likelihood of most likely point in parameter space and true point
+def sigmaProb(mostLikely, true):
+    lam = -2*(true - mostLikely)
     chi2CDF = scipy.special.gammainc(1, lam/2)
     return 1 - chi2CDF
-    
+
+###################################################################################################################
+#various plot functions below here
+###################################################################################################################
+
 def archiveMaxPlot(DMassPi, PiLikelihood, PiFunc,
                    DMassPiPi, PiPiLikelihood, PiPiFunc):
     '''PDFdir = Path("Max Likelihood Plots/")
@@ -417,7 +430,7 @@ def likelihoodPlot_2decays(true_decayRate1, true_decayRate2, decayRates1, decayR
         if model[2] > maxJprob:
             maxJprob = model[2]
             bestModel = model
-    trueModel = [true_decayRate1, true_decayRate1, JPD_2decays(true_decayRate1, true_decayRate1, DM, exposure, Sangle, Ensemble)]
+    trueModel = [true_decayRate1, true_decayRate2, JPD_2decays(true_decayRate1, true_decayRate2, DM, exposure, Sangle, Ensemble)]
     print('Best model:')
     print(bestModel)
     print('True model:')
@@ -450,6 +463,99 @@ def likelihoodPlot_2decays(true_decayRate1, true_decayRate2, decayRates1, decayR
     ax.legend(loc='upper right')
     fig.show()
     modelPlot(trueModel, bestModel, DM, exposure, 0.000404322, Ensemble)
+
+def likelihoodPlot_2decays_DMs(decay_channels, true_params, radius, num_points, exposure, Sangle, resolution, marginalize = True):
+    DM = true_params[0]
+    true_decayRate1 = true_params[1]
+    true_decayRate2 = true_params[2]
+    decayRates1 = np.linspace(0., true_decayRate1 + 2*radius, num_points)
+    decayRates2 = np.linspace(0., true_decayRate2 + 2*radius, num_points)
+    DM_thresholds = np.zeros(np.size(decay_channels))
+    for di in np.arange(np.size(decay_channels)):
+        DM_thresholds[di] = np.min(getMasses(decay_channels[di]))
+    DMs = getMasses(decay_channels[np.where(DM_thresholds == np.max(DM_thresholds))[0][0]])
+    Ensemble1 = getEnsemble(decay_channels[0], DM, true_decayRate1, exposure, Sangle)
+    Ensemble2 = getEnsemble(decay_channels[1], DM, true_decayRate2, exposure, Sangle)
+    Ensemble3 = getBackEnsemble(exposure, Sangle)
+    Ensemble = np.concatenate((Ensemble1, Ensemble2, Ensemble3))
+    Ensemble = smearEnsemble(Ensemble, resolution)
+    print('Ensembles: '+ str(len(Ensemble1))+', '+str(len(Ensemble2))+', '+str(len(Ensemble3)))
+    likelihoods = []
+    for decay1 in decayRates1:
+        for decay2 in decayRates2:
+            vec = np.array([decay1-true_decayRate1, decay2-true_decayRate2])
+            if np.absolute(np.sum(vec*np.array([1,-1]))/np.sqrt(2)) < 2*radius and np.absolute(np.sum(vec*np.array([1,1]))/np.sqrt(2)) < radius/2:
+            #if (decay1-true_decayRate1)**2 + (decay2-true_decayRate2)**2 < radius**2:
+                mass_likelihoods = []
+                for mass in DMs:
+                    if True:
+                        print('model coordinates: (' + str(decay1) + ',' + str(decay2) + ',' + str(mass) + ')')
+                        Jprob = JPD_2decays(decay1, decay2, mass, exposure, Sangle, Ensemble)
+                        if marginalize:
+                            mass_likelihoods.append(Jprob)
+                        else:
+                            likelihoods.append([decay1, decay2, mass, Jprob])
+                if marginalize:
+                    marginalized_Jprob = np.max(mass_likelihoods)+np.log(np.sum(np.exp(np.array(mass_likelihoods)-np.max(mass_likelihoods))))
+                    likelihoods.append([decay1, decay2, np.nan, marginalized_Jprob])
+    likelihoods = np.array(likelihoods)       
+    maxJprob = -np.inf
+    bestModel = []
+    for model in likelihoods:
+        print(model)
+        if model[3] > maxJprob:
+            maxJprob = model[3]
+            bestModel = model
+    if marginalize:
+        mass_likelihoods = []
+        for mass in DMs:
+            print('calculating true model for mass ' + str(mass) + 'MeV')
+            if True:
+                Jprob = JPD_2decays(true_decayRate1, true_decayRate2, mass, exposure, Sangle, Ensemble)
+                mass_likelihoods.append(Jprob)
+        marginalized_Jprob = np.max(mass_likelihoods)+np.log(np.sum(np.exp(np.array(mass_likelihoods)-np.max(mass_likelihoods))))
+        trueModel = [true_decayRate1, true_decayRate2, DM, marginalized_Jprob]
+    else:
+        trueModel = [true_decayRate1, true_decayRate2, DM, JPD_2decays(true_decayRate1, true_decayRate2, DM, exposure, Sangle, Ensemble)]
+    print('Best model:')
+    print(bestModel)
+    print('True model:')
+    print(trueModel)
+    sigma = 1+scipy.special.erf(-(5)/np.sqrt(2))#5 sigma ellipse
+    maxJprob = bestModel[3]
+    fig, ax = plt.subplots()
+    firstBlue = True
+    firstBlack = True
+    for model in likelihoods:
+        if model[3] == bestModel[3]:
+            ax.plot(model[0], model[1], 'r.', label='Max Probability')
+        elif sigmaProb(bestModel[3], model[3]) > sigma:
+            if firstBlue:
+                ax.plot(model[0], model[1], 'b.', label='Probability > ' + str(sigma))
+                firstBlue = False
+            else:
+                ax.plot(model[0], model[1], 'b.')
+        elif sigmaProb(bestModel[3], model[3]) <= sigma:
+            if firstBlack:
+                ax.plot(model[0], model[1], 'k.', label='Probability <= ' + str(sigma))
+                firstBlack = False
+            else:
+                ax.plot(model[0], model[1], 'k.')
+    for decay1 in decayRates1:
+        for decay2 in decayRates2:
+            vec = np.array([decay1-true_decayRate1, decay2-true_decayRate2])
+            if not np.absolute(np.sum(vec*np.array([1,-1]))/np.sqrt(2)) < 2*radius or not np.absolute(np.sum(vec*np.array([1,1]))/np.sqrt(2)) < radius/2:
+            #if not (decay1-true_decayRate1)**2 + (decay2-true_decayRate2)**2 < radius**2:
+                ax.plot(decay1, decay2, 'g.')
+    ax.set_title('Probability of True Model: {:.5%}'.format(sigmaProb(bestModel[3], trueModel[3]))+'\n'
+                 + 'True Model: ({:.5} , {:.5}) {:.5}'.format(float(trueModel[0]), float(trueModel[1]), float(DM))+'MeV\n'
+                 + 'Best Model: ({:.5} , {:.5})'.format(float(bestModel[0]), float(bestModel[1])))
+    ax.set_ylabel('Pi Pi Eta Decay Rate [s^-1]')
+    ax.set_xlabel('Pi Eta Decay Rate [s^-1]')
+    #ax.legend(loc='lower left')
+    fig.show()
+    #modelPlot(trueModel, bestModel, DM, exposure, Sangle, Ensemble)
+    print(bestModel[3]+np.log(1+np.sum(np.exp(np.array(likelihoods)[:,3]-bestModel[3]))))
 
 def modelPlot(trueModel, bestModel, DM, exposure, Sangle, Ensemble):
     JfactorDracoDecay = 5.77*(10**24) #(MeV cm^-2 sr^-1)
@@ -583,6 +689,8 @@ def sigmaGridPlot_2decays(decayRates1, decayRates2, DMs, exposures, Sangle, reso
     sigma = 1+scipy.special.erf(-(5)/np.sqrt(2))
     epsilon = .010
     fig, ax = plt.subplots()
+    x = []
+    y = []
     for model in likelihoods:
         backProb = sigmaProb(model[2][0, 0], model[3][0, 0])
         print(backProb, model[2][0, 0], model[3][0, 0])
@@ -592,6 +700,11 @@ def sigmaGridPlot_2decays(decayRates1, decayRates2, DMs, exposures, Sangle, reso
         '''
         if backProb > sigma or np.isnan(backProb):
             ax.plot(model[0], model[1], 'b.')
+            if not model[0] in x:
+                x.append(model[0])
+                y.append(model[1])
+            else:
+                y[x.index(model[0])] = np.maximum(y[x.index(model[0])], model[1])
         else:
             ax.plot(model[0], model[1], 'k.')
     for decay1 in decayRates1:
@@ -600,7 +713,10 @@ def sigmaGridPlot_2decays(decayRates1, decayRates2, DMs, exposures, Sangle, reso
                 ax.plot(decay1, decay2, 'k.')
             if -max(decayRates2)/max(decayRates1)*decay1 + max(decayRates2)/4 >= decay2:
                 ax.plot(decay1, decay2, 'b.')
-
+    d = np.linspace(np.min(x), np.max(x), 100)
+    f = interp1d(x, y, kind='cubic', fill_value= 0)
+    ax.plot(d, f(d), 'r-')
+    pk.dump([x,f], open(Path('Pickles/') / ('5sigline_'+str(DMs[0])+'DM_'+str(exposures[0])+'exposure.pk'), 'wb'))
     ax.legend(loc='upper right')
     fig.show()
 
@@ -728,18 +844,28 @@ interp1d(DMassPiPi, PiPiLikelihood, kind='linear',
     exposure = 3000
     Sangle = 0.000404322
     resolution = .3
-    decayRates1 = np.linspace(0.e-26, 1.5e-26, 11)
-    decayRates2 = np.linspace(0.e-26, 1.5e-26, 11)
+    decayRates1 = np.linspace(0.e-26, 2.e-26, 11)
+    decayRates2 = np.linspace(0.e-26, 2.e-26, 11)
     likelihoodPlot_2decays(true_decayRate1, true_decayRate2, decayRates1, decayRates2, DM, exposure, Sangle, resolution)
     '''
-    
-    DMs = [1000.]
-    exposures = [3000.]
+    '''
+    decay_channels = ['Pi Eta','Pi Pi Eta']
+    true_params = [1500.0, 2.e-26, 2.e-26]
+    radius = 3.e-26
+    num_points = 3
+    exposure = 3000
     Sangle = 0.000404322
     resolution = .3
-    decayRates1 = np.linspace(0.e-26, 0.5e-26, 51)
-    decayRates2 = np.linspace(0.e-26, 0.5e-26, 51)
-    sigmaGridPlot_2decays(decayRates1, decayRates2, DMs, exposures, Sangle, resolution, num_ave = 1)
+    likelihoodPlot_2decays_DMs(decay_channels, true_params, radius, num_points, exposure, Sangle, resolution)
+    '''
+    
+    DMs = [2000.]
+    exposures = [6000.]
+    Sangle = 0.000404322
+    resolution = .3
+    decayRates1 = np.linspace(0.e-26, 0.5e-26, 31)
+    decayRates2 = np.linspace(0.e-26, 0.5e-26, 31)
+    sigmaGridPlot_2decays(decayRates1, decayRates2, DMs, exposures, Sangle, resolution, num_ave = 30)
     
     '''
     DMs = [1000.]
