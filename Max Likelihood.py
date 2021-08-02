@@ -79,7 +79,8 @@ def getMasses(decay):
     masses = []
     for x in PDFdir.iterdir():
         if str(x).endswith('.csv'):
-            masses.append(float(str(x)[len(str(PDFdir))+1:-4]))
+            if not float(str(x)[:4]) > 1150.0:
+                masses.append(float(str(x)[len(str(PDFdir))+1:-4]))
     return np.array(masses)
 
 def draw_from_pdf(Pc, Ndraws):
@@ -692,19 +693,23 @@ def sigmaGridPlot_2decays(decayRates1, decayRates2, DMs, exposures, Sangle, reso
     x = []
     y = []
     for model in likelihoods:
-        backProb = sigmaProb(model[2][0, 0], model[3][0, 0])
-        print(backProb, model[2][0, 0], model[3][0, 0])
-        '''
-        if backProb > sigma and backProb < sigma + epsilon:
-            ax.plot(model[0], model[1], 'k.')
-        '''
-        if backProb > sigma or np.isnan(backProb):
+        isBlue = False
+        for Di in np.arange(np.size(DMs)):
+            backProb = sigmaProb(model[2][Di, 0], model[3][Di, 0])
+            #print(backProb, model[2][Di, 0], model[3][Di, 0])
+            '''
+            if backProb > sigma and backProb < sigma + epsilon:
+                ax.plot(model[0], model[1], 'k.')
+            '''
+            if backProb > sigma or np.isnan(backProb):
+                isBlue = True
+                if not model[0] in x:
+                    x.append(model[0])
+                    y.append(model[1])
+                else:
+                    y[x.index(model[0])] = np.maximum(y[x.index(model[0])], model[1])
+        if isBlue:
             ax.plot(model[0], model[1], 'b.')
-            if not model[0] in x:
-                x.append(model[0])
-                y.append(model[1])
-            else:
-                y[x.index(model[0])] = np.maximum(y[x.index(model[0])], model[1])
         else:
             ax.plot(model[0], model[1], 'k.')
     for decay1 in decayRates1:
@@ -716,7 +721,10 @@ def sigmaGridPlot_2decays(decayRates1, decayRates2, DMs, exposures, Sangle, reso
     d = np.linspace(np.min(x), np.max(x), 100)
     f = interp1d(x, y, kind='cubic', fill_value= 0)
     ax.plot(d, f(d), 'r-')
-    pk.dump([x,f], open(Path('Pickles/') / ('5sigline_'+str(DMs[0])+'DM_'+str(exposures[0])+'exposure.pk'), 'wb'))
+    if np.size(DMs) == 1:
+        pk.dump([x,f], open(Path('Pickles/') / ('5sigline_'+str(DMs[0])+'DM_'+str(exposures[0])+'exposure.pk'), 'wb'))
+    else:
+        pk.dump([x,f], open(Path('Pickles/') / ('5sigline_marginalizedDM_'+str(exposures[0])+'exposure.pk'), 'wb'))
     ax.legend(loc='upper right')
     fig.show()
 
@@ -859,12 +867,12 @@ interp1d(DMassPiPi, PiPiLikelihood, kind='linear',
     likelihoodPlot_2decays_DMs(decay_channels, true_params, radius, num_points, exposure, Sangle, resolution)
     '''
     
-    DMs = [2000.]
-    exposures = [6000.]
+    DMs = np.linspace(830, 1150, 33)
+    exposures = [3000.]
     Sangle = 0.000404322
     resolution = .3
-    decayRates1 = np.linspace(0.e-26, 0.5e-26, 31)
-    decayRates2 = np.linspace(0.e-26, 0.5e-26, 31)
+    decayRates1 = np.linspace(0.e-26, 0.5e-26, 21)
+    decayRates2 = np.linspace(0.e-26, 0.5e-26, 21)
     sigmaGridPlot_2decays(decayRates1, decayRates2, DMs, exposures, Sangle, resolution, num_ave = 30)
     
     '''
