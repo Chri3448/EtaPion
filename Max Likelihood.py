@@ -80,7 +80,7 @@ def getMasses(decay):
     for x in PDFdir.iterdir():
         if str(x).endswith('.csv'):
             mass = float(str(x)[len(str(PDFdir))+1:-4])
-            if not mass > 1150.0:
+            if not mass > 1000.0:
                 masses.append(mass)
     return np.sort(np.array(masses))
 
