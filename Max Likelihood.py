@@ -80,7 +80,7 @@ def getMasses(decay):
     for x in PDFdir.iterdir():
         if str(x).endswith('.csv'):
             mass = float(str(x)[len(str(PDFdir))+1:-4])
-            if not mass > 1000.0:
+            if not mass > 1100.0:
                 masses.append(mass)
     return np.sort(np.array(masses))
 
@@ -235,8 +235,7 @@ def JPDsingle(decay, DM, back, Ensemble):
     return val
 
 #returns the natural log of joint prob dist of model + background
-def JPD_2decays(GammaPiEta, GammaPiPiEta, DM, exposure, Sangle, Ensemble):
-    #print(GammaPiEta, GammaPiPiEta)
+def JPD_2decays(decay_channels, decayRate1, decayRate2, DM, exposure, Sangle, Ensemble):
     JfactorDracoDecay = 5.77*(10**24) #(MeV cm^-2 sr^-1)
     secPerYear = 3.154*10**7
 #get spectra:
@@ -249,8 +248,8 @@ def JPD_2decays(GammaPiEta, GammaPiPiEta, DM, exposure, Sangle, Ensemble):
     E1, PDF1 = getPDF('Gauss3', DM)
     E2, PDF2 = getPDF('Gauss4', DM)
     '''
-    E1, PDF1 = getSmearedPDF('Pi Eta', DM, .3)
-    E2, PDF2 = getSmearedPDF('Pi Pi Eta', DM, .3)
+    E1, PDF1 = getSmearedPDF(decay_channels[0], DM, .3)
+    E2, PDF2 = getSmearedPDF(decay_channels[1], DM, .3)
     E3, PDF3 = getSmearedBackground(exposure, Sangle, .3)
     
 #get interpolation functons of decay spectra
@@ -267,8 +266,8 @@ def JPD_2decays(GammaPiEta, GammaPiPiEta, DM, exposure, Sangle, Ensemble):
     specNorm2 = integrate.simps(PDF2, E2)
     specNorm3 = integrate.simps(PDF3, E3)
 #get expected number of events:
-    expectedEvents1 = GammaPiEta/(4*np.pi*DM)*JfactorDracoDecay*specNorm1*exposure*secPerYear*Sangle
-    expectedEvents2 = GammaPiPiEta/(4*np.pi*DM)*JfactorDracoDecay*specNorm2*exposure*secPerYear*Sangle
+    expectedEvents1 = decayRate1/(4*np.pi*DM)*JfactorDracoDecay*specNorm1*exposure*secPerYear*Sangle
+    expectedEvents2 = decayRate2/(4*np.pi*DM)*JfactorDracoDecay*specNorm2*exposure*secPerYear*Sangle
     expectedEvents3 = specNorm3
     totalExpectedEvents = expectedEvents1 + expectedEvents2 + expectedEvents3
     #totalExpectedEvents = expectedEvents1 + expectedEvents2
@@ -583,12 +582,12 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
                     vec = np.array([decayRates1[d1]-true_decayRate1, decayRates2[d2]-true_decayRate2])
                     if np.absolute(np.sum(vec*np.array([1,-1]))/np.sqrt(2)) < 2*radius and np.absolute(np.sum(vec*np.array([1,1]))/np.sqrt(2)) < radius/2:
                         print('model coordinates: (' + str(DMs[m]) + ',' + str(decayRates1[d1]) + ',' + str(decayRates2[d2]) + ')')
-                        Jprob = JPD_2decays(decayRates1[d1], decayRates2[d2], DMs[m], exposure, Sangle, Ensemble)
+                        Jprob = JPD_2decays(decay_channels, decayRates1[d1], decayRates2[d2], DMs[m], exposure, Sangle, Ensemble)
                         loglikelihoods[m, d1, d2] = Jprob
     maxJprob = np.max(loglikelihoods)
     indices = np.where(loglikelihoods == maxJprob)
     bestModel = [DMs[indices[0][0]], decayRates1[indices[1][0]], decayRates2[indices[2][0]]]
-    trueJprob = JPD_2decays(true_decayRate1, true_decayRate2, DM, exposure, Sangle, Ensemble)
+    trueJprob = JPD_2decays(decay_channels, true_decayRate1, true_decayRate2, DM, exposure, Sangle, Ensemble)
     trueModel = [DM, true_decayRate1, true_decayRate2]
     #bestModel = trueModel
     #maxJprob = trueJprob
@@ -613,8 +612,8 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
         ax.set_title('Probability of True Model: {:.5%}'.format(sigmaProb(maxJprob, trueJprob))+'\n'
                  + 'True Model: ({:.5} , {:.5}, {:.5})'.format(float(DM), float(true_decayRate1), float(true_decayRate2))+'\n'
                  + 'Best Model: ({:.5} , {:.5}, {:.5})'.format(float(bestModel[0]), float(bestModel[1]), float(bestModel[2])))
-        ax.set_ylabel('Pi Pi Eta Decay Rate [s^-1]')
-        ax.set_xlabel('Pi Eta Decay Rate [s^-1]')
+        ax.set_ylabel(decay_channels[1]+' Decay Rate [s^-1]')
+        ax.set_xlabel(decay_channels[0]+' Decay Rate [s^-1]')
         
         ax.plot(decayRates1, -decayRates1+(true_decayRate1+true_decayRate2+radius/(2*np.sqrt(2))), 'k')
         ax.plot(decayRates1, -decayRates1+(true_decayRate1+true_decayRate2-radius/(2*np.sqrt(2))), 'k')
@@ -922,8 +921,8 @@ interp1d(DMassPiPi, PiPiLikelihood, kind='linear',
     likelihoodPlot_2decays(true_decayRate1, true_decayRate2, decayRates1, decayRates2, DM, exposure, Sangle, resolution)
     '''
     
-    decay_channels = ['Pi Eta','Pi Pi Eta']
-    true_params = [1000.0, 2.e-26, 2.e-26]
+    decay_channels = ['Pi Eta','K+-']
+    true_params = [1050.0, 2.e-26, 2.e-26]
     radius = 5.e-26
     num_points = 60
     exposure = 3000
