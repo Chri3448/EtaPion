@@ -558,7 +558,8 @@ def likelihoodPlot_2decays_DMs(decay_channels, true_params, radius, num_points, 
     #modelPlot(trueModel, bestModel, DM, exposure, Sangle, Ensemble)
     print(bestModel[3]+np.log(1+np.sum(np.exp(np.array(likelihoods)[:,3]-bestModel[3]))))
 
-def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure, Sangle, resolution, marginalize = True):
+def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure, Sangle,
+                                      resolution, load_Ensemble, load_likelihoods, marginalize = True, plotlines = True):
     DM = true_params[0]
     true_decayRate1 = true_params[1]
     true_decayRate2 = true_params[2]
@@ -568,22 +569,61 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
     for di in np.arange(np.size(decay_channels)):
         DM_thresholds[di] = np.min(getMasses(decay_channels[di]))
     DMs = getMasses(decay_channels[np.where(DM_thresholds == np.max(DM_thresholds))[0][0]])
-    Ensemble1 = getEnsemble(decay_channels[0], DM, true_decayRate1, exposure, Sangle)
-    Ensemble2 = getEnsemble(decay_channels[1], DM, true_decayRate2, exposure, Sangle)
-    Ensemble3 = getBackEnsemble(exposure, Sangle)
-    Ensemble = np.concatenate((Ensemble1, Ensemble2, Ensemble3))
-    Ensemble = smearEnsemble(Ensemble, resolution)
-    print('Ensembles: '+ str(len(Ensemble1))+', '+str(len(Ensemble2))+', '+str(len(Ensemble3)))
-    loglikelihoods = -np.inf*np.ones((np.size(DMs), np.size(decayRates1), np.size(decayRates2)))
-    for m in np.arange(np.size(DMs)):
-        if True:
-            for d1 in np.arange(np.size(decayRates1)):
-                for d2 in np.arange(np.size(decayRates2)):
-                    vec = np.array([decayRates1[d1]-true_decayRate1, decayRates2[d2]-true_decayRate2])
-                    if np.absolute(np.sum(vec*np.array([1,-1]))/np.sqrt(2)) < 2*radius and np.absolute(np.sum(vec*np.array([1,1]))/np.sqrt(2)) < radius/2:
-                        print('model coordinates: (' + str(DMs[m]) + ',' + str(decayRates1[d1]) + ',' + str(decayRates2[d2]) + ')')
-                        Jprob = JPD_2decays(decay_channels, decayRates1[d1], decayRates2[d2], DMs[m], exposure, Sangle, Ensemble)
-                        loglikelihoods[m, d1, d2] = Jprob
+    EnsemblePath = Path('Pickles/') / ('Ensemble_'+decay_channels[0]+'_'+decay_channels[1]+'_'+str(true_params[0])+
+                                       '_'+str(true_params[1])+'_'+str(true_params[2])+'_'+str(exposure)+'_'+
+                                       str(Sangle)+'_'+str(resolution)+'.pk')
+    if load_Ensemble:
+        try:
+            Ensemble = pk.load(open(EnsemblePath, 'rb'))
+        except:
+            print("Ensemble file doesn't exist, aborting...")
+            return
+    else:
+        Ensemble1 = getEnsemble(decay_channels[0], DM, true_decayRate1, exposure, Sangle)
+        Ensemble2 = getEnsemble(decay_channels[1], DM, true_decayRate2, exposure, Sangle)
+        Ensemble3 = getBackEnsemble(exposure, Sangle)
+        Ensemble = np.concatenate((Ensemble1, Ensemble2, Ensemble3))
+        Ensemble = smearEnsemble(Ensemble, resolution)
+        print('Ensembles: '+ str(len(Ensemble1))+', '+str(len(Ensemble2))+', '+str(len(Ensemble3)))
+        if EnsemblePath.is_file():
+            ans = input('Ensemble file already exists. Do you want to overwrite it? (y/n)')
+            if ans=='y':
+                pk.dump(Ensemble, open(EnsemblePath, 'wb'))
+                print('File has been overwritten.')
+            else:
+                print('File was not overwritten.')
+        else:
+            pk.dump(Ensemble, open(EnsemblePath, 'wb'))
+    likelihoodsPath = Path('Pickles/') / ('loglikelihoods_'+decay_channels[0]+'_'+decay_channels[1]+'_'+
+                                          str(true_params[0])+'_'+str(true_params[1])+'_'+str(true_params[2])+'_'+
+                                          str(radius)+'_'+str(num_points)+'_'+str(exposure)+'_'+str(Sangle)+'_'+
+                                          str(resolution)+'.pk')
+    if load_likelihoods:
+        try:
+            loglikelihoods = pk.load(open(likelihoodsPath, 'rb'))
+        except:
+            print("Likelihood file doesn't exist, aborting...")
+            return
+    else:
+        loglikelihoods = -np.inf*np.ones((np.size(DMs), np.size(decayRates1), np.size(decayRates2)))
+        for m in np.arange(np.size(DMs)):
+            if True:
+                for d1 in np.arange(np.size(decayRates1)):
+                    for d2 in np.arange(np.size(decayRates2)):
+                        vec = np.array([decayRates1[d1]-true_decayRate1, decayRates2[d2]-true_decayRate2])
+                        if np.absolute(np.sum(vec*np.array([1,-1]))/np.sqrt(2)) < 2*radius and np.absolute(np.sum(vec*np.array([1,1]))/np.sqrt(2)) < radius/2:
+                            print('model coordinates: (' + str(DMs[m]) + ',' + str(decayRates1[d1]) + ',' + str(decayRates2[d2]) + ')')
+                            Jprob = JPD_2decays(decay_channels, decayRates1[d1], decayRates2[d2], DMs[m], exposure, Sangle, Ensemble)
+                            loglikelihoods[m, d1, d2] = Jprob
+        if likelihoodsPath.is_file():
+            ans = input('Likelihoods file already exists. Do you want to overwrite it? (y/n)')
+            if ans=='y':
+                pk.dump(loglikelihoods, open(likelihoodsPath, 'wb'))
+                print('File has been overwritten.')
+            else:
+                print('File was not overwritten.')
+        else:
+            pk.dump(loglikelihoods, open(likelihoodsPath, 'wb'))
     maxJprob = np.max(loglikelihoods)
     indices = np.where(loglikelihoods == maxJprob)
     bestModel = [DMs[indices[0][0]], decayRates1[indices[1][0]], decayRates2[indices[2][0]]]
@@ -595,14 +635,18 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
     print(bestModel)
     print('True model:')
     print(trueModel)
-    sigma = 1+scipy.special.erf(-(5)/np.sqrt(2))#5 sigma ellipse
+    sigma5 = 1+scipy.special.erf(-(5)/np.sqrt(2))#5 sigma ellipse
+    sigma2 = 1+scipy.special.erf(-(2)/np.sqrt(2))#2 sigma ellipse
     sigmaLikelihoods = sigmaProb(maxJprob, loglikelihoods, deg = 3)
     if marginalize:
         X, Y = np.meshgrid(decayRates1, decayRates2)
         fig, ax = plt.subplots()
         for m in np.arange(np.size(DMs)):
             if True:
-                ax.contourf(X, Y, np.transpose(sigmaLikelihoods[m]), [sigma, 1.], colors = 'purple')
+                ax.contourf(X, Y, np.transpose(sigmaLikelihoods[m]), [sigma5, 1.], colors = 'purple')
+        for m in np.arange(np.size(DMs)):
+            if True:
+                ax.contourf(X, Y, np.transpose(sigmaLikelihoods[m]), [sigma2, 1.], colors = 'blue')
         '''
         for m in np.arange(np.size(DMs)):
             if DMs[m] == 1000.0:
@@ -614,11 +658,12 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
                  + 'Best Model: ({:.5} , {:.5}, {:.5})'.format(float(bestModel[0]), float(bestModel[1]), float(bestModel[2])))
         ax.set_ylabel(decay_channels[1]+' Decay Rate [s^-1]')
         ax.set_xlabel(decay_channels[0]+' Decay Rate [s^-1]')
-        
-        ax.plot(decayRates1, -decayRates1+(true_decayRate1+true_decayRate2+radius/(2*np.sqrt(2))), 'k')
-        ax.plot(decayRates1, -decayRates1+(true_decayRate1+true_decayRate2-radius/(2*np.sqrt(2))), 'k')
-        ax.plot(decayRates1, decayRates1+(-true_decayRate1+true_decayRate2+2*radius/(np.sqrt(2))), 'k')
-        ax.plot(decayRates1, decayRates1+(-true_decayRate1+true_decayRate2-2*radius/(np.sqrt(2))), 'k')
+
+        if plotlines:
+            ax.plot(decayRates1, -decayRates1+(true_decayRate1+true_decayRate2+radius/(2*np.sqrt(2))), 'k')
+            ax.plot(decayRates1, -decayRates1+(true_decayRate1+true_decayRate2-radius/(2*np.sqrt(2))), 'k')
+            ax.plot(decayRates1, decayRates1+(-true_decayRate1+true_decayRate2+2*radius/(np.sqrt(2))), 'k')
+            ax.plot(decayRates1, decayRates1+(-true_decayRate1+true_decayRate2-2*radius/(np.sqrt(2))), 'k')
         
         fig.show()
 
@@ -921,14 +966,19 @@ interp1d(DMassPiPi, PiPiLikelihood, kind='linear',
     likelihoodPlot_2decays(true_decayRate1, true_decayRate2, decayRates1, decayRates2, DM, exposure, Sangle, resolution)
     '''
     
-    decay_channels = ['Pi Eta','K+-']
+    decay_channels = ['Kls','K+-']
     true_params = [1050.0, 2.e-26, 2.e-26]
     radius = 5.e-26
-    num_points = 60
-    exposure = 3000
+    num_points = 30
+    exposure = 10000
     Sangle = 0.000404322
     resolution = .3
-    likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure, Sangle, resolution)
+    load_Ensemble = False
+    load_likelihoods = True
+    marginalize = True
+    plotlines = False
+    likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure,
+                                      Sangle, resolution, load_Ensemble, load_likelihoods, marginalize, plotlines)
     
     '''
     #DMs = np.linspace(830, 1150, 33)

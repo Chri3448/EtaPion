@@ -72,10 +72,13 @@ def main():
     trueNorm = (.2066*2+.01761*4+.0507*2+.03353*2)*2
     for DM in masses:
         x,y = getPDF("K+-", DM)
+        print("origional error in norm for DM "+str(DM)+":")
+        print(integrate.simps(y,x)-trueNorm)
         badNorm = integrate.simps(y,x)
-        print(np.sum(y))
+        print("badNorm:")
+        print(badNorm)
         y = y*trueNorm/badNorm
-        print(np.sum(y))
+        print("corrected error in norm for DM "+str(DM)+":")
         print(integrate.simps(y,x)-trueNorm)
         archivePDF(x, y, DM)
         archivePlot(x, y, DM)
