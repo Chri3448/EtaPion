@@ -54,7 +54,7 @@ def getSmearedPDF(decay, DM, res):
 
 def SpectrumPlot(decay, DM):
     x,y = getPDF(decay, DM)
-    if decay=='Pi Pi Eta':
+    if decay=='Pi Eta':
         x=np.concatenate((x, np.linspace(0.011,20,100)))
         y=np.concatenate((y, np.zeros(100)))
     spec = interp1d(x,y, kind='linear')

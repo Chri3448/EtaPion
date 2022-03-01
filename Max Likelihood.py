@@ -659,6 +659,8 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
         ax.set_ylabel(decay_channels[1]+' Decay Rate [s^-1]')
         ax.set_xlabel(decay_channels[0]+' Decay Rate [s^-1]')
 
+        ax.plot(true_params[1],true_params[2],'kx')
+
         if plotlines:
             ax.plot(decayRates1, -decayRates1+(true_decayRate1+true_decayRate2+radius/(2*np.sqrt(2))), 'k')
             ax.plot(decayRates1, -decayRates1+(true_decayRate1+true_decayRate2-radius/(2*np.sqrt(2))), 'k')
@@ -966,15 +968,15 @@ interp1d(DMassPiPi, PiPiLikelihood, kind='linear',
     likelihoodPlot_2decays(true_decayRate1, true_decayRate2, decayRates1, decayRates2, DM, exposure, Sangle, resolution)
     '''
     
-    decay_channels = ['Kls','K+-']
-    true_params = [1050.0, 2.e-26, 2.e-26]
+    decay_channels = ['Pi Pi Eta','Pi Eta']
+    true_params = [1050.0, 1.e-26, 1.e-26]
     radius = 5.e-26
     num_points = 30
-    exposure = 10000
+    exposure = 3000
     Sangle = 0.000404322
     resolution = .3
-    load_Ensemble = False
-    load_likelihoods = True
+    load_Ensemble = True
+    load_likelihoods = False
     marginalize = True
     plotlines = False
     likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure,

@@ -1,6 +1,0 @@
-Area under curve of 1000 sample 1000 point etagamma plot was 1.9979462638748609
-
-Area under 3pi0->6gamma was 5.54095635806314                 
-
-Area under DM -> gamma curve for 15 samples on pipipi functions and 500 point plot was 4.611329110621906
-DM->gamma area is nominally 4.708333333333334                                                         
