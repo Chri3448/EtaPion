@@ -255,8 +255,10 @@ def JPD_2decays(decay_channels, decayRate1, decayRate2, DM, exposure, Sangle, En
     E3, PDF3 = getSmearedBackground(exposure, Sangle, .3)
     
 #get interpolation functons of decay spectra
+    '''
     f1 = interp1d(E1, PDF1, kind='linear', fill_value='extrapolate')
     f2 = interp1d(E2, PDF2, kind='linear', fill_value='extrapolate')
+    '''
 #get spectral norms:
     '''
     E1 = np.linspace(startE, max(E1), 1000)
@@ -264,9 +266,14 @@ def JPD_2decays(decay_channels, decayRate1, decayRate2, DM, exposure, Sangle, En
     PDF1 = f1(E1)
     PDF2 = f2(E2)
     '''
+    '''
     specNorm1 = integrate.simps(PDF1, E1)
     specNorm2 = integrate.simps(PDF2, E2)
     specNorm3 = integrate.simps(PDF3, E3)
+    '''
+    specNorm1 = np.sum(PDF1[1:]*(E1[1:]-E1[:-1]))
+    specNorm2 = np.sum(PDF2[1:]*(E2[1:]-E2[:-1]))
+    specNorm3 = np.sum(PDF3[1:]*(E3[1:]-E3[:-1]))
 #get expected number of events:
     expectedEvents1 = decayRate1/(4*np.pi*DM)*JfactorDracoDecay*specNorm1*exposure*secPerYear*Sangle
     expectedEvents2 = decayRate2/(4*np.pi*DM)*JfactorDracoDecay*specNorm2*exposure*secPerYear*Sangle
@@ -275,12 +282,14 @@ def JPD_2decays(decay_channels, decayRate1, decayRate2, DM, exposure, Sangle, En
     #totalExpectedEvents = expectedEvents1 + expectedEvents2
     #print(totalExpectedEvents)
 #combines background and decays into one PDF based on relative numbers of events
+    '''
     Emax = max(max(E1), max(E2), max(E3))
     Emin = min(min(E1), min(E2), min(E3))
     if Emin < startE:
         Emin = startE
 
     E = np.linspace(Emin, Emax, 5000)
+    '''
     '''
     PDF = []
     for energy in E:
@@ -298,12 +307,13 @@ def JPD_2decays(decay_channels, decayRate1, decayRate2, DM, exposure, Sangle, En
                     +(expectedEvents3*funcValue3/specNorm3))/totalExpectedEvents)
         #            )/totalExpectedEvents)
     '''
-    PDF = ((expectedEvents1*np.where(E > max(E1), 0, f1(E))/specNorm1)
-           +(expectedEvents2*np.where(E > max(E2), 0, f2(E))/specNorm2)
-           +(expectedEvents3*background(E, exposure, Sangle)/specNorm3))/totalExpectedEvents
+    PDF = ((expectedEvents1*PDF1/specNorm1)
+           +(expectedEvents2*PDF2/specNorm2)
+           +(expectedEvents3*PDF3/specNorm3))/totalExpectedEvents
 #the simpsons integrations give close but not perfect PDFs, and normalization is necessary
-    normalization = integrate.simps(PDF, E)
-    f = interp1d(E, PDF, kind='linear', fill_value= 'extrapolate')
+    normalization = np.sum(PDF[1:]*(E1[1:]-E1[:-1]))
+    #normalization = integrate.simps(PDF, E)
+    #f = interp1d(E, PDF, kind='linear', fill_value= 'extrapolate')
     #print(expectedEvents1, expectedEvents2, expectedEvents3)
     #print(normalization)
     '''
@@ -325,7 +335,7 @@ def JPD_2decays(decay_channels, decayRate1, decayRate2, DM, exposure, Sangle, En
             continue
         val += np.log(prob/normalization)
     '''
-    probs = f(Ensemble)/normalization
+    probs = PDF[np.searchsorted(E1, Ensemble)]/normalization
     if any(probs <= 0):
         print('Warning: some photons have zoro or negative probability')
     val = np.sum(np.log(probs))
