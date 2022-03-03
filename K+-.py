@@ -65,9 +65,21 @@ def archivePlot(x, PDF, DM):
     ax.set_xlabel('E (Mev)')
     ax.legend()
     fig.savefig(PDFfile)
-    fig.show()
+    #fig.show()
+
+def formatfiles(decay):
+    PDFdir = Path(decay + " PDFs/")
+    for x in PDFdir.iterdir():
+        PDFfile = PDFdir / str(x)[len(str(PDFdir))+1:]
+        if str(x).endswith('.csv') and str(x)[len(str(PDFdir))+1:-4].startswith('s'):
+            mass = float(str(x)[len(str(PDFdir))+2:-4])
+            try:
+                x.rename(Path(PDFdir, str(mass)+'.csv'))
+            except:
+                print('formatted file already exists')
 
 def main():
+    formatfiles("K+-")
     masses = getMasses("K+-")
     trueNorm = (.2066*2+.01761*4+.0507*2+.03353*2)*2
     for DM in masses:
