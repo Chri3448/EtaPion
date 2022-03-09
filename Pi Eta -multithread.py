@@ -389,13 +389,14 @@ def main():
     global DM
     if __name__=='__main__':
         print(time.asctime(time.localtime()))
-        for mass in np.linspace(690, 690, 1):
+        for mass in np.linspace(690, 1100, 42):
             DM = mass
             resetConstants(mass)
             print(DM)
             etaBeta = np.sqrt(((Reta/eta)**(-2)-1)*(-1))
             photonEmax = (eta/2)*np.sqrt((1+etaBeta)/(1-etaBeta))
-            i, c = NormalizedTotalGammaPDF(0.01, photonEmax + 20, 50)
+            #i, c = NormalizedTotalGammaPDF(0.01, photonEmax + 20, 50)
+            i, c = NormalizedTotalGammaPDF(0.01, 1000, 500)
             BRtotal = BRgammagammma+BRpipipi+BRpi0pipi
             #print('average number of photons: ' + str(2 + (2*BRgammagammma+6*BRpipipi+2*BRpi0pipi)/BRtotal))
             #print('integral of PDF: ' + str(integrate.simps(c,i)))

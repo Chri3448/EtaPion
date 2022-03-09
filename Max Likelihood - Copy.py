@@ -12,6 +12,7 @@ import random
 random.seed()
 import time
 import pickle as pk
+from getdist import plots, MCSamples
 
 startE = 10
 
@@ -662,18 +663,16 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
         X, Y = np.meshgrid(decayRates1, decayRates2)
         fig, ax = plt.subplots()
         for m in np.arange(np.size(DMs)):
-            if True:
-                ax.contourf(X, Y, np.transpose(sigmaLikelihoods[m]), [sigma5, 1.], colors = 'purple')
+            ax.contourf(X, Y, np.transpose(sigmaLikelihoods[m]), [sigma5, 1.], colors = 'purple')
         for m in np.arange(np.size(DMs)):
-            if True:
-                ax.contourf(X, Y, np.transpose(sigmaLikelihoods[m]), [sigma2, 1.], colors = 'blue')
+            ax.contourf(X, Y, np.transpose(sigmaLikelihoods[m]), [sigma2, 1.], colors = 'blue')
         '''
         for m in np.arange(np.size(DMs)):
             if DMs[m] == 1000.0:
                 sigmaLikelihoods = sigmaProb(maxJprob, loglikelihoods, deg = 2)
                 ax.contourf(X, Y, np.transpose(sigmaLikelihoods[m]), [sigma, 1.], colors = 'blue')
         '''
-        ax.set_title('Probability of True Model: {:.5%}'.format(sigmaProb(maxJprob, trueJprob))+'\n'
+        ax.set_title('Probability of True Model: {:.5%}'.format(sigmaProb(maxJprob, trueJprob, deg=3))+'\n'
                  + 'True Model: ({:.5} , {:.5}, {:.5})'.format(float(DM), float(true_decayRate1), float(true_decayRate2))+'\n'
                  + 'Best Model: ({:.5} , {:.5}, {:.5})'.format(float(bestModel[0]), float(bestModel[1]), float(bestModel[2])))
         ax.set_ylabel(decay_channels[1]+' Decay Rate [s^-1]')
@@ -697,6 +696,40 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
             '''
         
         fig.show()
+
+
+        
+    fig, ax = plt.subplots(3,3)
+    plt.subplots_adjust(wspace=0, hspace=0)
+    margD1DM = np.amax(sigmaLikelihoods, axis = 2)
+    margD1D2 = np.amax(sigmaLikelihoods, axis = 0).T
+    margD1 = np.amax(sigmaLikelihoods, axis = (0,2))
+    margD2DM = np.amax(sigmaLikelihoods, axis = 1)
+    margD2 = np.amax(sigmaLikelihoods, axis = (0,1))
+    margDM = np.amax(sigmaLikelihoods, axis = (1,2))
+    ax[2,0].contourf(decayRates1, DMs, margD1DM, [sigma5, 1.], colors = 'purple')
+    ax[2,0].contourf(decayRates1, DMs, margD1DM, [sigma2, 1.], colors = 'blue')
+    ax[2,0].set_ylabel('Mass'+' [MeV]')
+    ax[2,0].set_xlabel(decay_channels[0]+'[s^-1]')
+    ax[2,0].plot(true_params[1],true_params[0],'kx')
+    ax[1,0].contourf(decayRates1, decayRates2, margD1D2, [sigma5, 1.], colors = 'purple')
+    ax[1,0].contourf(decayRates1, decayRates2, margD1D2, [sigma2, 1.], colors = 'blue')
+    ax[1,0].set_ylabel(decay_channels[1]+'[s^-1]')
+    ax[1,0].plot(true_params[1],true_params[2],'kx')
+    ax[0,0].plot(decayRates1, margD1)
+    ax[2,1].contourf(decayRates2, DMs, margD2DM, [sigma5, 1.], colors = 'purple')
+    ax[2,1].contourf(decayRates2, DMs, margD2DM, [sigma2, 1.], colors = 'blue')
+    ax[2,1].set_xlabel(decay_channels[1]+'[s^-1]')
+    ax[2,1].plot(true_params[2],true_params[0],'kx')
+    #ax[1,1].plot(decayRates2, margD2)
+    '''
+    ax[2,2].plot(DMs, margDM)
+    ax[2,2].set_xlabel('Mass'+' [MeV]')
+    '''
+    fig.show()
+
+
+        
 
 def modelPlot(trueModel, bestModel, DM, exposure, Sangle, Ensemble):
     JfactorDracoDecay = 5.77*(10**24) #(MeV cm^-2 sr^-1)
@@ -1000,12 +1033,12 @@ interp1d(DMassPiPi, PiPiLikelihood, kind='linear',
     decay_channels = ['Pi Pi Eta','K+-']
     true_params = [1050.0, 2.e-26, 2.e-26]
     radius = 10.e-26
-    num_points = 150
+    num_points = 200
     exposure = 3000
     Sangle = 0.000404322
     resolution = .03
-    load_Ensemble = False
-    load_likelihoods = False
+    load_Ensemble = True
+    load_likelihoods = True
     marginalize = True
     plotlines = False
     likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure,
