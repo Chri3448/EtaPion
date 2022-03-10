@@ -698,8 +698,8 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
         fig.show()
 
 
-        
-    fig, ax = plt.subplots(3,3)
+    sigmaLikelihoods = sigmaProb(maxJprob, loglikelihoods, deg = 3)
+    fig, ax = plt.subplots(2,2, sharex = 'col', sharey = 'row')
     plt.subplots_adjust(wspace=0, hspace=0)
     margD1DM = np.amax(sigmaLikelihoods, axis = 2)
     margD1D2 = np.amax(sigmaLikelihoods, axis = 0).T
@@ -707,25 +707,25 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
     margD2DM = np.amax(sigmaLikelihoods, axis = 1)
     margD2 = np.amax(sigmaLikelihoods, axis = (0,1))
     margDM = np.amax(sigmaLikelihoods, axis = (1,2))
-    ax[2,0].contourf(decayRates1, DMs, margD1DM, [sigma5, 1.], colors = 'purple')
-    ax[2,0].contourf(decayRates1, DMs, margD1DM, [sigma2, 1.], colors = 'blue')
-    ax[2,0].set_ylabel('Mass'+' [MeV]')
-    ax[2,0].set_xlabel(decay_channels[0]+'[s^-1]')
-    ax[2,0].plot(true_params[1],true_params[0],'kx')
-    ax[1,0].contourf(decayRates1, decayRates2, margD1D2, [sigma5, 1.], colors = 'purple')
-    ax[1,0].contourf(decayRates1, decayRates2, margD1D2, [sigma2, 1.], colors = 'blue')
-    ax[1,0].set_ylabel(decay_channels[1]+'[s^-1]')
-    ax[1,0].plot(true_params[1],true_params[2],'kx')
-    ax[0,0].plot(decayRates1, margD1)
-    ax[2,1].contourf(decayRates2, DMs, margD2DM, [sigma5, 1.], colors = 'purple')
-    ax[2,1].contourf(decayRates2, DMs, margD2DM, [sigma2, 1.], colors = 'blue')
-    ax[2,1].set_xlabel(decay_channels[1]+'[s^-1]')
-    ax[2,1].plot(true_params[2],true_params[0],'kx')
-    #ax[1,1].plot(decayRates2, margD2)
-    '''
-    ax[2,2].plot(DMs, margDM)
-    ax[2,2].set_xlabel('Mass'+' [MeV]')
-    '''
+    ax[1,0].contourf(decayRates1, DMs, margD1DM, [sigma5, 1.], colors = 'purple')
+    ax[1,0].contourf(decayRates1, DMs, margD1DM, [sigma2, 1.], colors = 'blue')
+    ax[1,0].set_ylabel('Mass'+' [MeV]')
+    ax[1,0].set_xlabel(decay_channels[0]+'[s^-1]')
+    ax[1,0].plot(true_params[1],true_params[0],'kx')
+    ax[1,0].set_xlim((decayRates1[np.min(np.where(margD1 !=0))],decayRates1[np.max(np.where(margD1 !=0))]))
+    ax[1,0].set_ylim((DMs[np.min(np.where(margDM !=0))],DMs[np.max(np.where(margDM !=0))]))   
+    ax[0,0].contourf(decayRates1, decayRates2, margD1D2, [sigma5, 1.], colors = 'purple')
+    ax[0,0].contourf(decayRates1, decayRates2, margD1D2, [sigma2, 1.], colors = 'blue')
+    ax[0,0].set_ylabel(decay_channels[1]+'[s^-1]')
+    ax[0,0].plot(true_params[1],true_params[2],'kx')
+    ax[0,0].set_ylim((decayRates2[np.min(np.where(margD2 !=0))],decayRates2[np.max(np.where(margD2 !=0))]))
+    ax[1,1].contourf(decayRates2, DMs, margD2DM, [sigma5, 1.], colors = 'purple')
+    ax[1,1].contourf(decayRates2, DMs, margD2DM, [sigma2, 1.], colors = 'blue')
+    ax[1,1].set_xlabel(decay_channels[1]+'[s^-1]')
+    ax[1,1].plot(true_params[2],true_params[0],'kx')
+    ax[1,1].set_xlim((decayRates2[np.min(np.where(margD2 !=0))],decayRates2[np.max(np.where(margD2 !=0))]))
+    ax[1,1].set_yticks([])
+    fig.delaxes(ax[0,1])
     fig.show()
 
 
@@ -1030,13 +1030,13 @@ interp1d(DMassPiPi, PiPiLikelihood, kind='linear',
     likelihoodPlot_2decays(true_decayRate1, true_decayRate2, decayRates1, decayRates2, DM, exposure, Sangle, resolution)
     '''
     
-    decay_channels = ['Pi Pi Eta','K+-']
-    true_params = [1050.0, 2.e-26, 2.e-26]
+    decay_channels = ['Pi Pi Eta','Pi Eta']
+    true_params = [850.0, 2.e-26, 2.e-26]
     radius = 10.e-26
-    num_points = 200
+    num_points = 100
     exposure = 3000
     Sangle = 0.000404322
-    resolution = .03
+    resolution = .3
     load_Ensemble = True
     load_likelihoods = True
     marginalize = True
