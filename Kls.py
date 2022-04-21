@@ -67,13 +67,24 @@ def archivePlot(x, PDF, DM):
     fig.savefig(PDFfile)
     fig.show()
 
+def formatfiles(decay):
+    PDFdir = Path(decay + " PDFs/")
+    for x in PDFdir.iterdir():
+        PDFfile = PDFdir / str(x)[len(str(PDFdir))+1:]
+        if str(x).endswith('.csv') and str(x)[len(str(PDFdir))+1:-4].startswith('s'):
+            mass = float(str(x)[len(str(PDFdir))+2:-4])
+            try:
+                x.rename(Path(PDFdir, str(mass)+'.csv'))
+            except:
+                print('formatted file already exists')
+
 def main():
+    formatfiles("Kls")
     masses = getMasses("Kls")
     #trueNorm = 0.7599
     trueNorm = 4*0.307+6*0.195+2*0.125
     for DM in masses:
         x,y = getPDF("Kls", DM)
-        '''
         print("origional error in norm for DM "+str(DM)+":")
         print(integrate.simps(y,x)-trueNorm)
         badNorm = integrate.simps(y,x)
@@ -83,7 +94,6 @@ def main():
         print("corrected error in norm for DM "+str(DM)+":")
         print(integrate.simps(y,x)-trueNorm)
         archivePDF(x, y, DM)
-        '''
         archivePlot(x, y, DM)
 
 main()

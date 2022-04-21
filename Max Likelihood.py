@@ -35,7 +35,7 @@ def getPDF(decay, DM):
 def smearPDF(energy, E, PDF, res):
     sig = res/(2*np.sqrt(2*np.log(2)))
     f = interp1d(E, PDF, kind='linear', fill_value='extrapolate')
-    E = np.linspace(min(E), max(E), 1000)
+    E = np.linspace(min(E), max(E), 20000)
     E_values = np.ones((np.size(energy), np.size(E), 2))
     E_values[:,:,0] = np.tile(energy, (np.size(E),1)).T
     E_values[:,:,1] = np.tile(E, (np.size(energy),1))

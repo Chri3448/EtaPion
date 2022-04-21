@@ -30,7 +30,7 @@ def getPDF(decay, DM):
             if y == []:
                 for val in row:
                     y.append(float(val))
-    return x,y
+    return np.array(x), np.array(y)
 
 def smearPDF(energy, E, PDF, res):
     sig = res/(2*np.sqrt(2*np.log(2)))
@@ -57,6 +57,8 @@ def SpectrumPlot(decay, DM):
     if decay=='Pi Eta':
         x=np.concatenate((x, np.linspace(0.011,20,100)))
         y=np.concatenate((y, np.zeros(100)))
+    x = x[np.where(x < 350.0)]
+    y = y[0: np.size(x)]
     spec = interp1d(x,y, kind='linear')
     x=np.linspace(0.1,np.max(x), 10000)
     plt.rc('text', usetex=True)
@@ -71,15 +73,15 @@ def SpectrumPlot(decay, DM):
     elif decay == 'K+-':
         plt.title(r'$K^+K^-$')
     elif decay == 'Pi Pi Eta':
-        plt.title(r'$\pi^+\pi^-\eta$')
+        plt.title(r'$\pi\pi\eta$')
     elif decay == 'Pi Eta':
         plt.title(r'$\pi^0\eta$')
     plt.show()
     
 
 def main():
-    decay = 'Pi Eta'
-    DM = 690.0
+    decay = 'Pi Pi Eta'
+    DM = 830.0
     SpectrumPlot(decay, DM)
     
 main()
