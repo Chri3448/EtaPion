@@ -389,7 +389,8 @@ def main():
     global DM
     if __name__=='__main__':
         print(time.asctime(time.localtime()))
-        for mass in np.linspace(690, 1100, 42):
+        masses = np.linspace(830, 1100, 109)
+        for mass in masses[np.where(masses%10 != 0)]:
             DM = mass
             resetConstants(mass)
             print(DM)
