@@ -54,16 +54,14 @@ def getSmearedPDF(decay, DM, res):
 
 def SpectrumPlot(decay, DM):
     x,y = getPDF(decay, DM)
-    if decay=='Pi Eta':
-        x=np.concatenate((x, np.linspace(0.011,20,100)))
-        y=np.concatenate((y, np.zeros(100)))
     x = x[np.where(x < 350.0)]
     y = y[0: np.size(x)]
+    y = y/integrate.simps(y,x)
     spec = interp1d(x,y, kind='linear')
     x=np.linspace(0.1,np.max(x), 10000)
     plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-    fig, ax = plt.subplots()
+    plt.rc('font', family='serif', size=21)
+    fig, ax = plt.subplots(figsize=(10,7))
     ax.plot(x, spec(x), 'k')
     plt.xlabel(r'$E_\gamma \hspace{.1cm} (MeV)$')
     plt.ylabel(r'$\frac{dN_\gamma}{dE_\gamma} \hspace{.1cm} (MeV^{-1})$')
@@ -81,7 +79,7 @@ def SpectrumPlot(decay, DM):
 
 def main():
     decay = 'Pi Pi Eta'
-    DM = 830.0
+    DM = 835.0
     SpectrumPlot(decay, DM)
     
 main()

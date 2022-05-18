@@ -1,0 +1,26 @@
+Pi Pi Eta - Pi Eta:
+1000DM, 3000e, 30r, 4e-26 radius, 150 points
+1000DM, 30000e, 30r, 1e-26 radius, 100 points
+1000DM, 30000e, 3r, 1e-26 radius, 150 points
+new
+1000DM, 2999e, 30r, 4e-26 radius, 150 points
+1000DM, 29999e, 30r, 1.2e-26 radius, 130 points
+1000DM, 29999e, 3r, 1e-26 radius, 150 points
+
+Pi Eta - Kls:
+1050DM, 3000e, 30r, 4e-26 radius, 150 points
+1050DM, 30000e, 30r, 2e-26 radius, 150 points
+1050DM, 30000e, 3r, 1e-26 radius, 100 points
+new
+1050DM, 2999e, 30r, 4e-26 radius, 150 points
+1050DM, 29999e, 30r, 2e-26 radius, 150 points
+1050DM, 29999e, 3r, 4e-26 radius, 150 points
+
+Kls - K+-:
+1010DM, 3000e, 30r, 5e-26 radius, 150 points
+1010DM, 30000e, 30r, 5e-26 radius, 150 points
+1010DM, 30000e, 3r, 3e-26 radius, 150 points
+new
+1050DM, 3000e, 30r, 5e-26 radius, 150 points
+1050DM, 30000e, 30r, 5e-26 radius, 150 points
+1050DM, 30000e, 3r, 3e-26 radius, 150 points

@@ -1,3 +1,4 @@
+#GOD HELP ALL YEE WHO OPEN THIS CODE
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integrate
@@ -64,7 +65,8 @@ def smearBackground(energy, E, PDF, res):
 
 def getSmearedBackground(exposure, Sangle, res):
     sig = res/(2*np.sqrt(2*np.log(2)))
-    E = np.linspace(startE/(1+4*sig), 1000, 1000)
+    #E = np.linspace(startE/(1+4*sig), 1000, 1000)
+    E = np.linspace(startE/3, 1000, 10000)
     PDF = background(E, exposure, Sangle)
     E2 = np.linspace(startE, max(E) + 4*sig*max(E), 1000)
     PDF2 = smearPDF(E2, E, PDF, res)
@@ -182,9 +184,9 @@ def getBackEnsemble(exposure, Sangle):
                 for val in row:
                     Ensemble.append(float(val))
     '''
-    E = np.linspace(startE/2, 1000, 10000)
+    E = np.linspace(startE/3, 1000, 10000)
     PDF = background(E, exposure, Sangle)
-    specNorm = integrate.simps(PDF, E)
+    specNorm = np.sum(PDF[1:]*(E[1]-E[0]))
     #print("Background Integral: " + str(specNorm))
     expectedEvents = specNorm
     N_Events = np.random.poisson(expectedEvents)
@@ -571,7 +573,8 @@ def likelihoodPlot_2decays_DMs(decay_channels, true_params, radius, num_points, 
     print(bestModel[3]+np.log(1+np.sum(np.exp(np.array(likelihoods)[:,3]-bestModel[3]))))
 
 def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure, Sangle,
-                                      resolution, load_Ensemble, load_likelihoods, marginalize = True, plotlines = True):
+                                      resolution, load_Ensemble, load_likelihoods, custom_DMs = np.array([]),
+                                      marginalize = True, plotlines = True):
     DM = true_params[0]
     true_decayRate1 = true_params[1]
     true_decayRate2 = true_params[2]
@@ -581,6 +584,8 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
     for di in np.arange(np.size(decay_channels)):
         DM_thresholds[di] = np.min(getMasses(decay_channels[di]))
     DMs = getMasses(decay_channels[np.where(DM_thresholds == np.max(DM_thresholds))[0][0]])
+    if np.size(custom_DMs) != 0:
+        DMs = custom_DMs
     EnsemblePath = Path('Pickles/') / ('Ensemble_'+decay_channels[0]+'_'+decay_channels[1]+'_'+str(true_params[0])+
                                        '_'+str(true_params[1])+'_'+str(true_params[2])+'_'+str(exposure)+'_'+
                                        str(Sangle)+'_'+str(resolution)+'.pk')
@@ -618,10 +623,11 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
             return
     else:
         loglikelihoods = -np.inf*np.ones((np.size(DMs), np.size(decayRates1), np.size(decayRates2)))
+        E3, PDF3 = getSmearedBackground(exposure, Sangle, resolution)
         for m in np.arange(np.size(DMs)):
             E1, PDF1 = getSmearedPDF(decay_channels[0], DMs[m], resolution)
             E2, PDF2 = getSmearedPDF(decay_channels[1], DMs[m], resolution)
-            E3, PDF3 = getSmearedBackground(exposure, Sangle, resolution)
+            
             print(f"Mass: {DMs[m]}")
             if True:
                 for d1 in np.arange(np.size(decayRates1)):
@@ -700,36 +706,61 @@ def likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_p
 
 
     sigmaLikelihoods = sigmaProb(maxJprob, loglikelihoods, deg = 3)
-    fig, ax = plt.subplots(2,2, sharex = 'col', sharey = 'row')
-    plt.subplots_adjust(wspace=0, hspace=0)
     margD1DM = np.amax(sigmaLikelihoods, axis = 2)
     margD1D2 = np.amax(sigmaLikelihoods, axis = 0).T
     margD1 = np.amax(sigmaLikelihoods, axis = (0,2))
     margD2DM = np.amax(sigmaLikelihoods, axis = 1)
     margD2 = np.amax(sigmaLikelihoods, axis = (0,1))
     margDM = np.amax(sigmaLikelihoods, axis = (1,2))
+    decay_labels = ['','']
+    for i in range(np.size(decay_channels)):
+        if decay_channels[i] == 'Kls':
+            decay_labels[i] = r'$\Gamma_{K_L K_S} \hspace{.1cm} (s^{-1})$'
+            #plt.title(r'$K_LK_S--\sqrt{s} = '+str(DM)+' MeV$')
+        elif decay_channels[i] == 'K+-':
+            decay_labels[i] = r'$\Gamma_{K^+ K^-} \hspace{.1cm} (s^{-1})$'
+        elif decay_channels[i] == 'Pi Pi Eta':
+            decay_labels[i] = r'$\Gamma_{\pi^0 \pi^0 \eta} \hspace{.1cm} (s^{-1})$'
+        elif decay_channels[i] == 'Pi Eta':
+            decay_labels[i] = r'$\Gamma_{\pi^0 \eta} \hspace{.1cm} (s^{-1})$'
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif', size=26)
+    fig, ax = plt.subplots(2,2, figsize=(10,10), sharex = 'col', sharey = 'row')
+    plt.subplots_adjust(wspace=0, hspace=0)
     ax[1,0].contourf(decayRates1, DMs, margD1DM, [sigma5, 1.], colors = 'blue')
     ax[1,0].contourf(decayRates1, DMs, margD1DM, [sigma2, 1.], colors = 'yellow')
-    ax[1,0].set_ylabel('Mass'+' [MeV]')
-    ax[1,0].set_xlabel(decay_channels[0]+'[s^-1]')
-    ax[1,0].plot(true_params[1],true_params[0],'kx')
+    ax[1,0].set_ylabel(r'$\sqrt{s} \hspace{.1cm} (MeV)$')
+    ax[1,0].set_xlabel(decay_labels[0])
+    ax[1,0].plot(true_params[1],true_params[0],'kx', markersize=10)
     #ax[1,0].set_xlim((0,decayRates1[np.max(np.where(margD1 !=0))]))
     #ax[1,0].set_ylim((DMs[np.min(np.where(margDM !=0))],DMs[np.max(np.where(margDM !=0))]))
-    ax[1,0].set_xlim((0, true_decayRate1*2))  
+    ax[1,0].set_xlim((0, true_decayRate1*2))
     ax[0,0].contourf(decayRates1, decayRates2, margD1D2, [sigma5, 1.], colors = 'blue')
     ax[0,0].contourf(decayRates1, decayRates2, margD1D2, [sigma2, 1.], colors = 'yellow')
-    ax[0,0].set_ylabel(decay_channels[1]+'[s^-1]')
-    ax[0,0].plot(true_params[1],true_params[2],'kx')
+    ax[0,0].set_ylabel(decay_labels[1])
+    ax[0,0].plot(true_params[1],true_params[2],'kx', markersize=10)
     #ax[0,0].set_ylim((0,decayRates2[np.max(np.where(margD2 !=0))]))
     ax[0,0].set_ylim((0, true_decayRate2*2))
     ax[1,1].contourf(decayRates2, DMs, margD2DM, [sigma5, 1.], colors = 'blue')
     ax[1,1].contourf(decayRates2, DMs, margD2DM, [sigma2, 1.], colors = 'yellow')
-    ax[1,1].set_xlabel(decay_channels[1]+'[s^-1]')
-    ax[1,1].plot(true_params[2],true_params[0],'kx')
+    ax[1,1].set_xlabel(decay_labels[1])
+    ax[1,1].plot(true_params[2],true_params[0],'kx', markersize=10)
     #ax[1,1].set_xlim((0,decayRates2[np.max(np.where(margD2 !=0))]))
     ax[1,1].set_xlim((0, true_decayRate2*2))
+    ax[1,1].set_ylim((np.max(DM_thresholds), 1100.0))
+    ax[1,0].set_xticks(np.arange(0, true_decayRate1*2, true_decayRate1/2))
+    ax[1,1].set_xticks(np.arange(true_decayRate2/2, true_decayRate2*2.1, true_decayRate2/2))
+    ax[0,0].set_yticks(np.arange(true_decayRate2/2, true_decayRate2*2.1, true_decayRate2/2))
+    if np.max(DM_thresholds) == 830.0:
+        ax[1,0].set_yticks([840,880,920,960,1000,1040,1080])
+    elif np.max(DM_thresholds) == 1000.0:
+        ax[1,0].set_yticks([1010,1030,1050,1070,1090])
+    ax[0,0].tick_params(axis='x', direction='in')
+    ax[1,1].tick_params(axis='y', direction='in')
     fig.delaxes(ax[0,1])
     fig.show()
+    #fig.savefig(fname='file.pdf')
 
         
 
@@ -1033,20 +1064,40 @@ interp1d(DMassPiPi, PiPiLikelihood, kind='linear',
     '''
 
     
-    decay_channels = ['Pi Pi Eta','Pi Eta']
-    true_params = [1000.0, 2.e-26, 2.e-26]
-    radius = 1.e-26
+    decay_channels = ['Pi Eta','Kls']
+    true_params = [1050.0, 2.e-26, 2.e-26]
+    radius = 4.e-26
     num_points = 150
-    exposure = 30000
+    exposure = 29999
     Sangle = 0.000404322
     resolution = .03
+    #custom_DMs = np.linspace(1000,1100,3)
+    custom_DMs = np.array([])
     load_Ensemble = True
-    load_likelihoods = False
+    load_likelihoods = True
     marginalize = True
     plotlines = True
-    likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure,
-                                      Sangle, resolution, load_Ensemble, load_likelihoods, marginalize, plotlines)
 
+    likelihoodPlot_2decays_DMs_better(decay_channels, true_params, radius, num_points, exposure,
+                                      Sangle, resolution, load_Ensemble, load_likelihoods, custom_DMs,
+                                      marginalize, plotlines)
+
+    '''
+    E, PDF = getSmearedBackground(exposure, Sangle, resolution)
+    specNorm = np.sum(PDF[1:]*(E[1:]-E[:-1]))
+    JfactorDracoDecay = 5.77*(10**24) #(MeV cm^-2 sr^-1)
+    secPerYear = 3.154*10**7
+    #expected = true_params[1]/(4*np.pi*true_params[0])*JfactorDracoDecay*specNorm*exposure*secPerYear*Sangle
+    expected = specNorm
+    num = 0
+    for i in range(200):
+        #new = np.size(smearEnsemble(getEnsemble(decay_channels[0], true_params[0], true_params[1], exposure, Sangle),
+        #                            resolution))
+        new = np.size(smearEnsemble(getBackEnsemble(exposure, Sangle),resolution))
+        num += new
+    num /= 200
+    print(expected, num)
+    '''
     '''
     #TEST SMEARING
     E1, PDF1 = getSmearedPDF(decay_channels[0], 1000.0, resolution)
